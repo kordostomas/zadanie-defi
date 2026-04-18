@@ -1,0 +1,7 @@
+/model opusplan 
+
+/plan read @"DMBLOCK_Zadanie 2.pdf" in next.js with ehter.js connected to metamask. hardhat on
+  development, sepolia on production (.env config). create contract that can be deployed, interacted with on the
+  frontend - first just something with set (payable) and get function - the contract is deployed once, address is
+  stored in persistant storage. dockerized with multistage build. create test environment where multiple addresses
+  interact with the contract, test ownership and edge cases. document the architercute in markdown file.

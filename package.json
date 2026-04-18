@@ -1,0 +1,16 @@
+{
+  "name": "zadanie-defi",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter frontend run dev",
+    "build": "pnpm --filter contracts run compile && pnpm --filter frontend run build",
+    "test": "pnpm --filter contracts run test",
+    "coverage": "pnpm --filter contracts run coverage",
+    "deploy:local": "pnpm --filter contracts run deploy:local",
+    "deploy:sepolia": "pnpm --filter contracts run deploy:sepolia",
+    "sync:abi": "pnpm --filter frontend run sync:abi"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

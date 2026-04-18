@@ -1,0 +1,26 @@
+version: "3.9"
+
+# Local demo: Hardhat node + Next.js frontend pointing at chainId 31337.
+# Requires a deployment JSON at packages/contracts/deployments/31337.json
+# (run "pnpm deploy:local" after starting the hardhat-node service).
+
+services:
+  hardhat-node:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "corepack enable && pnpm --filter @zadanie-defi/contracts run node"
+    volumes:
+      - .:/app
+    ports:
+      - "8545:8545"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: packages/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_CHAIN_ID: "31337"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - hardhat-node

@@ -1,0 +1,26 @@
+# env
+.env
+.env.local
+
+# dependencies
+node_modules/
+**/node_modules/
+
+# Hardhat
+packages/contracts/artifacts/
+packages/contracts/cache/
+packages/contracts/typechain-types/
+packages/contracts/coverage/
+packages/contracts/coverage.json
+
+# Next.js
+packages/frontend/.next/
+packages/frontend/out/
+packages/frontend/src/generated/
+
+# pnpm
+.pnpm-store/
+
+# misc
+.DS_Store
+*.log
