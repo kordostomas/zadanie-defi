@@ -1,0 +1,162 @@
+@startuml GymFinder Loyalty System
+
+' ===== ENUMS =====
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+}
+
+enum ProductType {
+  PHYSICAL
+  SERVICE
+  DISCOUNT
+}
+
+' ===== SMART CONTRACTS =====
+
+class GymFinderFactory {
+  + address owner
+  + uint256 platformFeePercent
+  + address[] registeredGyms
+  --
+  + deployGymBranch(gymName: string, owner: address, monthlyFee: uint256) : address
+  + collectPlatformFees() : void
+  + updateFeePercent(newFee: uint256) : void
+  + getRegisteredGyms() : address[]
+}
+
+class GymBranch {
+  + address owner
+  + string gymName
+  + uint256 monthlySubscriptionFee
+  + uint256 lastPaymentTimestamp
+  + bool isActive
+  + uint256 loyaltyPointsPerVisit
+  --
+  + setOwner(newOwner: address) : void
+  + setLoyaltyPointsRate(points: uint256) : void
+  + addProduct(name: string, cost: uint256, productType: ProductType) : uint256
+  + removeProduct(productId: uint256) : void
+  + payMonthlyFee() : void
+  + checkSubscriptionStatus() : bool
+  + awardPoints(user: address, points: uint256) : void
+  + deactivate() : void
+}
+
+class LoyaltyToken {
+  <<ERC-20>>
+  + string name
+  + string symbol
+  + uint8 decimals
+  + mapping balances
+  --
+  + mint(to: address, amount: uint256) : void
+  + burn(from: address, amount: uint256) : void
+  + transfer(to: address, amount: uint256) : bool
+  + balanceOf(account: address) : uint256
+  + approve(spender: address, amount: uint256) : bool
+  + transferFrom(from: address, to: address, amount: uint256) : bool
+}
+
+class ShopProduct {
+  <<ERC-1155>>
+  + uint256 productId
+  + string name
+  + string description
+  + uint256 loyaltyPointCost
+  + ProductType productType
+  + uint256 stock
+  + bool isActive
+  + address gymBranch
+  --
+  + mint(to: address, productId: uint256, amount: uint256) : void
+  + burn(from: address, productId: uint256, amount: uint256) : void
+  + redeemProduct(user: address, productId: uint256) : void
+  + updateStock(amount: uint256) : void
+  + setActive(status: bool) : void
+}
+
+class Member {
+  + address wallet
+  + uint256 totalPointsEarned
+  + uint256 totalPointsSpent
+  + mapping gymVisits
+  + MembershipStatus status
+  --
+  + checkIn(gymBranch: address) : void
+  + redeemPoints(gymBranch: address, productId: uint256) : void
+  + getPointBalance() : uint256
+  + getMembershipStatus() : MembershipStatus
+}
+
+class PaymentSplitter {
+  + address gymFinderTreasury
+  + uint256 platformCutPercent
+  --
+  + splitPayment(gymBranch: address, amount: uint256) : void
+  + withdrawToTreasury() : void
+  + getAccumulatedFees(gymBranch: address) : uint256
+}
+
+' ===== RELATIONSHIPS =====
+
+GymFinderFactory "1" --> "many" GymBranch : deploys / owns registry
+GymFinderFactory "1" --> "1" PaymentSplitter : configures fees
+
+GymBranch "1" --> "many" ShopProduct : manages shop
+GymBranch "1" --> "1" LoyaltyToken : awards points
+GymBranch "1" --> "1" PaymentSplitter : sends monthly fee
+
+LoyaltyToken "1" --> "many" Member : balanceOf
+ShopProduct "1" --> "many" Member : redeems to
+
+Member "many" --> "1" GymBranch : checks in
+Member "many" --> "many" ShopProduct : purchases with points
+
+PaymentSplitter --> GymFinderFactory : forwards platform %
+
+' ===== NOTES =====
+
+note top of GymFinderFactory
+  <b>Platform Owner Contract</b>
+  Deployed once by GymFinder.
+  Collects % of monthly gym fees.
+  Keeps registry of all gym branches.
+end note
+
+note right of GymBranch
+  <b>Per-Gym Contract</b>
+  Každé fitko si deployuje
+  vlastný kontrakt cez Factory.
+  Owner nastaví loyalty rate
+  a shop produkty.
+  Musí platiť mesačný poplatok
+  — inak sa deaktivuje.
+end note
+
+note right of LoyaltyToken
+  <b>ERC-20 Loyalty Points</b>
+  Mintujú sa pri check-ine.
+  Burnujú sa pri redemptione
+  v shope.
+end note
+
+note bottom of ShopProduct
+  <b>ERC-1155 Shop Items</b>
+  Napr. "Protein zadarmo" (physical),
+  "Vstup zadarmo" (service),
+  "20% zľava" (discount).
+  Každý produkt má cenu
+  v loyalty tokenoch.
+end note
+
+note left of PaymentSplitter
+  <b>Fee Splitter</b>
+  Mesačný poplatok od gymu
+  sa rozdelí:
+  - X% → GymFinder treasury
+  - (100-X)% → gym owner
+end note
+
+@enduml
