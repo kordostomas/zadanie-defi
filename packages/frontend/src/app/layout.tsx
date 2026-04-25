@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SimpleVault dApp",
-  description: "DMBLOCK Assignment 2 — Decentralized Application",
+  title: "GymFinder Loyalty dApp",
+  description: "DMBLOCK Assignment 2 — GymFinder Loyalty System",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

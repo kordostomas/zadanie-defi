@@ -1,22 +1,26 @@
 /**
- * Copies the deployment JSON for a given chain into the frontend's
+ * Copies the deployment manifest for a given chain into the frontend's
  * src/generated/deployment.json so it can be imported at build time.
  *
+ * The manifest now contains addresses AND ABIs for all platform contracts
+ * (GymFinderFactory, LoyaltyToken, PaymentSplitter) plus ABIs for the
+ * per-gym contracts (GymBranch, ShopProduct) so the frontend can interact
+ * with dynamically discovered instances.
+ *
  * Run via: pnpm --filter frontend run sync:abi
- * (which calls: ts-node ../../contracts/scripts/export-abi.ts)
  */
 import fs from "fs";
 import path from "path";
 
 const chainId = process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337";
-const src = path.join(__dirname, "../deployments", `${chainId}.json`);
+const src     = path.join(__dirname, "../deployments", `${chainId}.json`);
 const destDir = path.join(__dirname, "../../frontend/src/generated");
-const dest = path.join(destDir, "deployment.json");
+const dest    = path.join(destDir, "deployment.json");
 
 if (!fs.existsSync(src)) {
   console.error(
     `No deployment found for chainId ${chainId}.\n` +
-    `Run "pnpm deploy:local" or "pnpm deploy:sepolia" first.`
+    `Run "pnpm deploy:local" or "pnpm deploy:sepolia" first, then re-run this script.`
   );
   process.exit(1);
 }

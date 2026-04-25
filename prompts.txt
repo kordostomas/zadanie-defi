@@ -5,3 +5,7 @@
   frontend - first just something with set (payable) and get function - the contract is deployed once, address is
   stored in persistant storage. dockerized with multistage build. create test environment where multiple addresses
   interact with the contract, test ownership and edge cases. document the architercute in markdown file.
+
+we're working on a project in 2 member team. read our assignment (DMBLOCK_Zadanie 2.pdf). we want to make a dApp for this     
+  ▎ website "Gymfinder" (gymfinder.sk), analyse this website. our plan is to make dApp based on this UML diagram: @startuml       
+  ▎ GymFinder Loyalty System ... [the full UML]. plan this project and implement it into our project structure. 
