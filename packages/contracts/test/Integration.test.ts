@@ -37,7 +37,7 @@ describe("Integration — GymFinder Loyalty System", function () {
 
     // 1. Deploy platform (factory + loyaltyToken + paymentSplitter)
     const FactoryFactory = await ethers.getContractFactory("GymFinderFactory");
-    factory = (await FactoryFactory.deploy(20n)) as GymFinderFactory;   // 20% platform cut
+    factory = (await FactoryFactory.deploy(20n, 0n)) as GymFinderFactory;   // 20% platform cut, 0 registration fee
     await factory.waitForDeployment();
 
     loyaltyToken    = await ethers.getContractAt("LoyaltyToken",    await factory.loyaltyToken())    as LoyaltyToken;
@@ -61,15 +61,23 @@ describe("Integration — GymFinder Loyalty System", function () {
     // 4. Gym B owner adds products
     await gymBranchB.connect(gymOwnerB).addProduct("Towel Rental",   "Fresh towel",        80n, 0, 200);
     await gymBranchB.connect(gymOwnerB).addProduct("Smoothie",       "Post-workout smoothie",120n, 0, 100);
+
+    // 5. Register alice and bob at both gyms; disable rate limit for test convenience
+    await gymBranchA.connect(gymOwnerA).setCheckInRateLimit(0);
+    await gymBranchB.connect(gymOwnerB).setCheckInRateLimit(0);
+    await gymBranchA.connect(gymOwnerA).registerMember(alice.address);
+    await gymBranchA.connect(gymOwnerA).registerMember(bob.address);
+    await gymBranchB.connect(gymOwnerB).registerMember(alice.address);
+    await gymBranchB.connect(gymOwnerB).registerMember(bob.address);
   });
 
   // ── Full member journey ───────────────────────────────────────────────────
 
   describe("full member journey", function () {
     it("alice earns points by checking into Gym A multiple times", async function () {
-      await gymBranchA.connect(alice).checkIn(); // +100
-      await gymBranchA.connect(alice).checkIn(); // +100
-      await gymBranchA.connect(alice).checkIn(); // +100  → 300 total
+      await gymBranchA.connect(gymOwnerA).checkIn(alice.address); // +100
+      await gymBranchA.connect(gymOwnerA).checkIn(alice.address); // +100
+      await gymBranchA.connect(gymOwnerA).checkIn(alice.address); // +100  → 300 total
       expect(await loyaltyToken.balanceOf(alice.address)).to.equal(300n);
     });
 
@@ -81,7 +89,7 @@ describe("Integration — GymFinder Loyalty System", function () {
 
     it("alice checks into Gym B and earns different-rate points", async function () {
       const before = await loyaltyToken.balanceOf(alice.address);
-      await gymBranchB.connect(alice).checkIn(); // +150
+      await gymBranchB.connect(gymOwnerB).checkIn(alice.address); // +150
       const after = await loyaltyToken.balanceOf(alice.address);
       expect(after - before).to.equal(POINTS_B);
     });
@@ -100,8 +108,8 @@ describe("Integration — GymFinder Loyalty System", function () {
 
   describe("multiple members share one LoyaltyToken", function () {
     it("bob earns points from both gyms independently", async function () {
-      await gymBranchA.connect(bob).checkIn(); // +100
-      await gymBranchB.connect(bob).checkIn(); // +150
+      await gymBranchA.connect(gymOwnerA).checkIn(bob.address); // +100
+      await gymBranchB.connect(gymOwnerB).checkIn(bob.address); // +150
       expect(await loyaltyToken.balanceOf(bob.address)).to.equal(250n);
     });
 
@@ -192,7 +200,7 @@ describe("Integration — GymFinder Loyalty System", function () {
       await temp.deactivate();
       expect(await temp.isActive()).to.be.false;
 
-      await expect(temp.connect(alice).checkIn())
+      await expect(temp.connect(gymOwnerA).checkIn(alice.address))
         .to.be.revertedWith("GymBranch: gym not active");
     });
 
@@ -204,8 +212,9 @@ describe("Integration — GymFinder Loyalty System", function () {
       await temp.connect(gymOwnerA).payMonthlyFee({ value: MONTHLY_FEE });
       expect(await temp.isActive()).to.be.true;
 
-      // Check-in should work again
-      await expect(temp.connect(alice).checkIn()).not.to.be.reverted;
+      // Register alice in temp, then verify check-in works
+      await temp.connect(gymOwnerA).registerMember(alice.address);
+      await expect(temp.connect(gymOwnerA).checkIn(alice.address)).not.to.be.reverted;
     });
   });
 
@@ -214,13 +223,13 @@ describe("Integration — GymFinder Loyalty System", function () {
   describe("member status", function () {
     it("gym owner can suspend a member", async function () {
       await gymBranchA.connect(gymOwnerA).setMemberStatus(bob.address, 2); // SUSPENDED
-      await expect(gymBranchA.connect(bob).checkIn())
+      await expect(gymBranchA.connect(gymOwnerA).checkIn(bob.address))
         .to.be.revertedWith("GymBranch: member suspended");
     });
 
     it("gym owner can reinstate the member", async function () {
       await gymBranchA.connect(gymOwnerA).setMemberStatus(bob.address, 0); // ACTIVE
-      await expect(gymBranchA.connect(bob).checkIn()).not.to.be.reverted;
+      await expect(gymBranchA.connect(gymOwnerA).checkIn(bob.address)).not.to.be.reverted;
     });
   });
 

@@ -17,7 +17,7 @@ describe("GymFinderFactory", function () {
   beforeEach(async function () {
     [owner, gymOwnerA, gymOwnerB, stranger] = await ethers.getSigners();
     const Factory = await ethers.getContractFactory("GymFinderFactory");
-    factory = (await Factory.deploy(PLATFORM_FEE)) as GymFinderFactory;
+    factory = (await Factory.deploy(PLATFORM_FEE, 0n)) as GymFinderFactory;
     await factory.waitForDeployment();
   });
 
@@ -44,7 +44,7 @@ describe("GymFinderFactory", function () {
 
     it("reverts on deployment with fee > 100", async function () {
       const Factory = await ethers.getContractFactory("GymFinderFactory");
-      await expect(Factory.deploy(101n)).to.be.revertedWith("GymFinderFactory: invalid fee");
+      await expect(Factory.deploy(101n, 0n)).to.be.revertedWith("GymFinderFactory: invalid fee");
     });
   });
 
@@ -110,10 +110,12 @@ describe("GymFinderFactory", function () {
       expect(gyms[0]).to.not.equal(gyms[1]);
     });
 
-    it("reverts when called by non-owner", async function () {
+    it("anyone can deploy a gym branch (open deployment with registration fee)", async function () {
+      // deployGymBranch is permissionless — any address can deploy, paying the registration fee
       await expect(
-        factory.connect(stranger).deployGymBranch("Gym A", gymOwnerA.address, MONTHLY_FEE, POINTS)
-      ).to.be.revertedWithCustomError(factory, "OwnableUnauthorizedAccount");
+        factory.connect(stranger).deployGymBranch("Stranger Gym", gymOwnerA.address, MONTHLY_FEE, POINTS)
+      ).not.to.be.reverted;
+      expect(await factory.getRegisteredGymsCount()).to.equal(1n);
     });
   });
 

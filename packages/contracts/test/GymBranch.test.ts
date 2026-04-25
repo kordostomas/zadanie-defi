@@ -84,6 +84,24 @@ describe("GymBranch", function () {
     it("links the shop product", async function () {
       expect(await gymBranch.shopProduct()).to.equal(await shopProduct.getAddress());
     });
+
+    it("defaults checkInRateLimitHours to 20", async function () {
+      expect(await gymBranch.checkInRateLimitHours()).to.equal(20n);
+    });
+
+    it("defaults allowSelfRegistration to false", async function () {
+      expect(await gymBranch.allowSelfRegistration()).to.be.false;
+    });
+
+    it("starts with zero members", async function () {
+      expect(await gymBranch.getMemberCount()).to.equal(0n);
+    });
+
+    it("subscriptionExpiresAt is 30 days after deployment", async function () {
+      const expiresAt = await gymBranch.subscriptionExpiresAt();
+      const block = await ethers.provider.getBlock("latest");
+      expect(expiresAt).to.be.closeTo(BigInt(block!.timestamp) + BigInt(30 * 24 * 3600), 5n);
+    });
   });
 
   // ── setShopProduct ────────────────────────────────────────────────────────
@@ -112,53 +130,272 @@ describe("GymBranch", function () {
     });
   });
 
+  // ── operators ─────────────────────────────────────────────────────────────
+
+  describe("operators", function () {
+    it("owner can add an operator", async function () {
+      await gymBranch.connect(gymOwner).addOperator(alice.address);
+      expect(await gymBranch.isOperator(alice.address)).to.be.true;
+    });
+
+    it("emits OperatorAdded", async function () {
+      await expect(gymBranch.connect(gymOwner).addOperator(alice.address))
+        .to.emit(gymBranch, "OperatorAdded")
+        .withArgs(alice.address);
+    });
+
+    it("owner can remove an operator", async function () {
+      await gymBranch.connect(gymOwner).addOperator(alice.address);
+      await gymBranch.connect(gymOwner).removeOperator(alice.address);
+      expect(await gymBranch.isOperator(alice.address)).to.be.false;
+    });
+
+    it("emits OperatorRemoved", async function () {
+      await gymBranch.connect(gymOwner).addOperator(alice.address);
+      await expect(gymBranch.connect(gymOwner).removeOperator(alice.address))
+        .to.emit(gymBranch, "OperatorRemoved")
+        .withArgs(alice.address);
+    });
+
+    it("reverts adding zero address", async function () {
+      await expect(gymBranch.connect(gymOwner).addOperator(ethers.ZeroAddress))
+        .to.be.revertedWith("GymBranch: zero address");
+    });
+
+    it("reverts adding an address that is already an operator", async function () {
+      await gymBranch.connect(gymOwner).addOperator(alice.address);
+      await expect(gymBranch.connect(gymOwner).addOperator(alice.address))
+        .to.be.revertedWith("GymBranch: already operator");
+    });
+
+    it("reverts removing an address that is not an operator", async function () {
+      await expect(gymBranch.connect(gymOwner).removeOperator(alice.address))
+        .to.be.revertedWith("GymBranch: not operator");
+    });
+
+    it("reverts when non-owner tries to add operator", async function () {
+      await expect(gymBranch.connect(alice).addOperator(bob.address))
+        .to.be.revertedWithCustomError(gymBranch, "OwnableUnauthorizedAccount");
+    });
+
+    it("operator can check in a registered member", async function () {
+      await gymBranch.connect(gymOwner).addOperator(alice.address);
+      await gymBranch.connect(gymOwner).registerMember(bob.address);
+      await expect(gymBranch.connect(alice).checkIn(bob.address)).not.to.be.reverted;
+    });
+
+    it("non-operator cannot check in", async function () {
+      await gymBranch.connect(gymOwner).registerMember(bob.address);
+      await expect(gymBranch.connect(alice).checkIn(bob.address))
+        .to.be.revertedWith("GymBranch: not operator");
+    });
+  });
+
+  // ── member registration ────────────────────────────────────────────────────
+
+  describe("registerMember / unregisterMember", function () {
+    it("owner can register a member", async function () {
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+      expect(await gymBranch.isMember(alice.address)).to.be.true;
+    });
+
+    it("operator can register a member", async function () {
+      await gymBranch.connect(gymOwner).addOperator(alice.address);
+      await gymBranch.connect(alice).registerMember(bob.address);
+      expect(await gymBranch.isMember(bob.address)).to.be.true;
+    });
+
+    it("self-registration reverts when disabled (default)", async function () {
+      await expect(gymBranch.connect(alice).registerMember(alice.address))
+        .to.be.revertedWith("GymBranch: not authorized");
+    });
+
+    it("self-registration works when enabled", async function () {
+      await gymBranch.connect(gymOwner).setAllowSelfRegistration(true);
+      await gymBranch.connect(alice).registerMember(alice.address);
+      expect(await gymBranch.isMember(alice.address)).to.be.true;
+    });
+
+    it("self-registration cannot register a different address", async function () {
+      await gymBranch.connect(gymOwner).setAllowSelfRegistration(true);
+      await expect(gymBranch.connect(alice).registerMember(bob.address))
+        .to.be.revertedWith("GymBranch: not authorized");
+    });
+
+    it("emits MemberRegistered", async function () {
+      await expect(gymBranch.connect(gymOwner).registerMember(alice.address))
+        .to.emit(gymBranch, "MemberRegistered")
+        .withArgs(alice.address);
+    });
+
+    it("reverts on duplicate registration", async function () {
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+      await expect(gymBranch.connect(gymOwner).registerMember(alice.address))
+        .to.be.revertedWith("GymBranch: already a member");
+    });
+
+    it("emits SelfRegistrationUpdated", async function () {
+      await expect(gymBranch.connect(gymOwner).setAllowSelfRegistration(true))
+        .to.emit(gymBranch, "SelfRegistrationUpdated")
+        .withArgs(true);
+    });
+
+    it("owner can unregister a member", async function () {
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+      await gymBranch.connect(gymOwner).unregisterMember(alice.address);
+      expect(await gymBranch.isMember(alice.address)).to.be.false;
+    });
+
+    it("emits MemberUnregistered", async function () {
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+      await expect(gymBranch.connect(gymOwner).unregisterMember(alice.address))
+        .to.emit(gymBranch, "MemberUnregistered")
+        .withArgs(alice.address);
+    });
+
+    it("unregister reverts for non-member", async function () {
+      await expect(gymBranch.connect(gymOwner).unregisterMember(alice.address))
+        .to.be.revertedWith("GymBranch: not a member");
+    });
+
+    it("getMembers returns the full member list", async function () {
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+      await gymBranch.connect(gymOwner).registerMember(bob.address);
+      const members = await gymBranch.getMembers();
+      expect(members).to.have.length(2);
+      expect(members).to.include(alice.address);
+      expect(members).to.include(bob.address);
+    });
+
+    it("unregister removes member from list (swap-and-pop)", async function () {
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+      await gymBranch.connect(gymOwner).registerMember(bob.address);
+      await gymBranch.connect(gymOwner).unregisterMember(alice.address);
+      const members = await gymBranch.getMembers();
+      expect(members).to.have.length(1);
+      expect(members).to.include(bob.address);
+      expect(members).to.not.include(alice.address);
+    });
+
+    it("non-owner cannot unregister", async function () {
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+      await expect(gymBranch.connect(alice).unregisterMember(alice.address))
+        .to.be.revertedWithCustomError(gymBranch, "OwnableUnauthorizedAccount");
+    });
+  });
+
   // ── checkIn() ─────────────────────────────────────────────────────────────
 
   describe("checkIn()", function () {
+    beforeEach(async function () {
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+      await gymBranch.connect(gymOwner).registerMember(bob.address);
+      // disable rate limit so back-to-back checkIns work in these unit tests
+      await gymBranch.connect(gymOwner).setCheckInRateLimit(0);
+    });
+
     it("mints loyaltyPointsPerVisit tokens to the member", async function () {
-      await gymBranch.connect(alice).checkIn();
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
       expect(await loyaltyToken.balanceOf(alice.address)).to.equal(POINTS_PER_VISIT);
     });
 
     it("increments the visit counter", async function () {
-      await gymBranch.connect(alice).checkIn();
-      await gymBranch.connect(alice).checkIn();
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
       expect(await gymBranch.visitCount(alice.address)).to.equal(2n);
     });
 
     it("tracks totalPointsEarned", async function () {
-      await gymBranch.connect(alice).checkIn();
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
       expect(await gymBranch.totalPointsEarned(alice.address)).to.equal(POINTS_PER_VISIT);
     });
 
     it("emits CheckedIn event with correct args", async function () {
-      await expect(gymBranch.connect(alice).checkIn())
+      await expect(gymBranch.connect(gymOwner).checkIn(alice.address))
         .to.emit(gymBranch, "CheckedIn")
         .withArgs(alice.address, POINTS_PER_VISIT, 1n);
     });
 
+    it("reverts for an unregistered user", async function () {
+      const [, , , , , stranger] = await ethers.getSigners();
+      await expect(gymBranch.connect(gymOwner).checkIn(stranger.address))
+        .to.be.revertedWith("GymBranch: not a member");
+    });
+
+    it("reverts when called by non-operator", async function () {
+      await expect(gymBranch.connect(alice).checkIn(alice.address))
+        .to.be.revertedWith("GymBranch: not operator");
+    });
+
     it("reverts when gym is inactive", async function () {
-      // Expire subscription by warping time past 30 days
       await ethers.provider.send("evm_increaseTime", [31 * 24 * 3600]);
       await ethers.provider.send("evm_mine", []);
       await gymBranch.deactivate();
 
-      await expect(gymBranch.connect(alice).checkIn())
+      await expect(gymBranch.connect(gymOwner).checkIn(alice.address))
         .to.be.revertedWith("GymBranch: gym not active");
     });
 
     it("reverts for a suspended member", async function () {
       await gymBranch.connect(gymOwner).setMemberStatus(alice.address, 2); // SUSPENDED
-      await expect(gymBranch.connect(alice).checkIn())
+      await expect(gymBranch.connect(gymOwner).checkIn(alice.address))
         .to.be.revertedWith("GymBranch: member suspended");
     });
 
     it("independent counters per member", async function () {
-      await gymBranch.connect(alice).checkIn();
-      await gymBranch.connect(alice).checkIn();
-      await gymBranch.connect(bob).checkIn();
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
+      await gymBranch.connect(gymOwner).checkIn(bob.address);
       expect(await gymBranch.visitCount(alice.address)).to.equal(2n);
       expect(await gymBranch.visitCount(bob.address)).to.equal(1n);
+    });
+
+    it("records lastCheckInTimestamp", async function () {
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
+      const ts = await gymBranch.lastCheckInTimestamp(alice.address);
+      const block = await ethers.provider.getBlock("latest");
+      expect(ts).to.equal(BigInt(block!.timestamp));
+    });
+  });
+
+  // ── setCheckInRateLimit() ──────────────────────────────────────────────────
+
+  describe("setCheckInRateLimit()", function () {
+    beforeEach(async function () {
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+    });
+
+    it("blocks a second check-in within the rate limit window", async function () {
+      await gymBranch.connect(gymOwner).setCheckInRateLimit(24); // 24-hour cooldown
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
+      await expect(gymBranch.connect(gymOwner).checkIn(alice.address))
+        .to.be.revertedWith("GymBranch: check-in rate limit");
+    });
+
+    it("allows a check-in after the cooldown expires", async function () {
+      await gymBranch.connect(gymOwner).setCheckInRateLimit(24);
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
+      await ethers.provider.send("evm_increaseTime", [25 * 3600]);
+      await ethers.provider.send("evm_mine", []);
+      await expect(gymBranch.connect(gymOwner).checkIn(alice.address)).not.to.be.reverted;
+    });
+
+    it("setting limit to 0 removes the restriction", async function () {
+      await gymBranch.connect(gymOwner).setCheckInRateLimit(1);
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
+      await gymBranch.connect(gymOwner).setCheckInRateLimit(0);
+      await expect(gymBranch.connect(gymOwner).checkIn(alice.address)).not.to.be.reverted;
+    });
+
+    it("emits CheckInRateLimitUpdated", async function () {
+      await expect(gymBranch.connect(gymOwner).setCheckInRateLimit(12))
+        .to.emit(gymBranch, "CheckInRateLimitUpdated")
+        .withArgs(12n);
+    });
+
+    it("reverts when called by non-owner", async function () {
+      await expect(gymBranch.connect(alice).setCheckInRateLimit(24))
+        .to.be.revertedWithCustomError(gymBranch, "OwnableUnauthorizedAccount");
     });
   });
 
@@ -168,7 +405,7 @@ describe("GymBranch", function () {
     const PRODUCT_COST = 300n;
 
     beforeEach(async function () {
-      // Add a product (gym owner → GymBranch → ShopProduct)
+      await gymBranch.connect(gymOwner).setCheckInRateLimit(0);
       await gymBranch.connect(gymOwner).addProduct(
         "Free Protein",
         "A scoop of protein powder",
@@ -176,10 +413,11 @@ describe("GymBranch", function () {
         0, // PHYSICAL
         10  // stock
       );
-      // Give alice enough points
-      await gymBranch.connect(alice).checkIn();
-      await gymBranch.connect(alice).checkIn();
-      await gymBranch.connect(alice).checkIn(); // 300 points
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+      await gymBranch.connect(gymOwner).registerMember(bob.address);
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
+      await gymBranch.connect(gymOwner).checkIn(alice.address); // 300 points
     });
 
     it("burns correct number of loyalty tokens", async function () {
@@ -209,10 +447,22 @@ describe("GymBranch", function () {
         .withArgs(alice.address, 0n, PRODUCT_COST);
     });
 
+    it("reverts for a non-member", async function () {
+      const [, , , , , stranger] = await ethers.getSigners();
+      await expect(gymBranch.connect(stranger).redeemProduct(0))
+        .to.be.revertedWith("GymBranch: not a member");
+    });
+
     it("reverts when balance is insufficient", async function () {
-      // bob has no points
+      // bob is a member but has no points
       await expect(gymBranch.connect(bob).redeemProduct(0))
         .to.be.revertedWith("GymBranch: insufficient points");
+    });
+
+    it("reverts for a suspended member", async function () {
+      await gymBranch.connect(gymOwner).setMemberStatus(alice.address, 2);
+      await expect(gymBranch.connect(alice).redeemProduct(0))
+        .to.be.revertedWith("GymBranch: member suspended");
     });
 
     it("reverts when product is inactive", async function () {
@@ -228,9 +478,83 @@ describe("GymBranch", function () {
     });
   });
 
+  // ── redeemFor() ───────────────────────────────────────────────────────────
+
+  describe("redeemFor()", function () {
+    const PRODUCT_COST = 200n;
+
+    beforeEach(async function () {
+      await gymBranch.connect(gymOwner).setCheckInRateLimit(0);
+      await gymBranch.connect(gymOwner).addProduct("Shake", "", PRODUCT_COST, 0, 10);
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
+      await gymBranch.connect(gymOwner).checkIn(alice.address); // 200 points
+    });
+
+    it("operator can redeem on behalf of a member", async function () {
+      await gymBranch.connect(gymOwner).addOperator(bob.address);
+      await gymBranch.connect(bob).redeemFor(alice.address, 0);
+      expect(await loyaltyToken.balanceOf(alice.address)).to.equal(0n);
+      expect(await shopProduct.balanceOf(alice.address, 0)).to.equal(1n);
+    });
+
+    it("owner can use redeemFor directly", async function () {
+      await gymBranch.connect(gymOwner).redeemFor(alice.address, 0);
+      expect(await shopProduct.balanceOf(alice.address, 0)).to.equal(1n);
+    });
+
+    it("burns tokens from the member, not the operator", async function () {
+      await gymBranch.connect(gymOwner).addOperator(bob.address);
+      const opBalBefore = await loyaltyToken.balanceOf(bob.address);
+      await gymBranch.connect(bob).redeemFor(alice.address, 0);
+      expect(await loyaltyToken.balanceOf(bob.address)).to.equal(opBalBefore);
+      expect(await loyaltyToken.balanceOf(alice.address)).to.equal(0n);
+    });
+
+    it("mints NFT to the member, not the operator", async function () {
+      await gymBranch.connect(gymOwner).addOperator(bob.address);
+      await gymBranch.connect(bob).redeemFor(alice.address, 0);
+      expect(await shopProduct.balanceOf(alice.address, 0)).to.equal(1n);
+      expect(await shopProduct.balanceOf(bob.address, 0)).to.equal(0n);
+    });
+
+    it("emits ProductRedeemed with the member's address", async function () {
+      await expect(gymBranch.connect(gymOwner).redeemFor(alice.address, 0))
+        .to.emit(gymBranch, "ProductRedeemed")
+        .withArgs(alice.address, 0n, PRODUCT_COST);
+    });
+
+    it("reverts if non-operator calls it", async function () {
+      await expect(gymBranch.connect(alice).redeemFor(alice.address, 0))
+        .to.be.revertedWith("GymBranch: not operator");
+    });
+
+    it("reverts if the member is not registered", async function () {
+      const [, , , , , stranger] = await ethers.getSigners();
+      await expect(gymBranch.connect(gymOwner).redeemFor(stranger.address, 0))
+        .to.be.revertedWith("GymBranch: not a member");
+    });
+
+    it("reverts if the member is suspended", async function () {
+      await gymBranch.connect(gymOwner).setMemberStatus(alice.address, 2);
+      await expect(gymBranch.connect(gymOwner).redeemFor(alice.address, 0))
+        .to.be.revertedWith("GymBranch: member suspended");
+    });
+
+    it("reverts if the member has insufficient points", async function () {
+      await gymBranch.connect(gymOwner).registerMember(bob.address);
+      await expect(gymBranch.connect(gymOwner).redeemFor(bob.address, 0))
+        .to.be.revertedWith("GymBranch: insufficient points");
+    });
+  });
+
   // ── awardPoints() ─────────────────────────────────────────────────────────
 
   describe("awardPoints()", function () {
+    beforeEach(async function () {
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+    });
+
     it("mints bonus points to a member", async function () {
       await gymBranch.connect(gymOwner).awardPoints(alice.address, 50n, "Birthday bonus");
       expect(await loyaltyToken.balanceOf(alice.address)).to.equal(50n);
@@ -240,6 +564,11 @@ describe("GymBranch", function () {
       await expect(gymBranch.connect(gymOwner).awardPoints(alice.address, 50n, "Referral"))
         .to.emit(gymBranch, "PointsAwarded")
         .withArgs(alice.address, 50n, "Referral");
+    });
+
+    it("reverts for a non-member", async function () {
+      await expect(gymBranch.connect(gymOwner).awardPoints(bob.address, 50n, "Gift"))
+        .to.be.revertedWith("GymBranch: not a member");
     });
 
     it("reverts when called by non-owner", async function () {
@@ -324,8 +653,10 @@ describe("GymBranch", function () {
 
   describe("getMemberInfo()", function () {
     it("returns correct aggregated member data", async function () {
-      await gymBranch.connect(alice).checkIn();
-      await gymBranch.connect(alice).checkIn();
+      await gymBranch.connect(gymOwner).registerMember(alice.address);
+      await gymBranch.connect(gymOwner).setCheckInRateLimit(0);
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
+      await gymBranch.connect(gymOwner).checkIn(alice.address);
 
       // Add product & redeem
       await gymBranch.connect(gymOwner).addProduct("Towel", "", 150n, 0, 5);
@@ -337,6 +668,7 @@ describe("GymBranch", function () {
       expect(info.pointsSpent).to.equal(150n);
       expect(info.pointBalance).to.equal(POINTS_PER_VISIT * 2n - 150n);
       expect(info.status).to.equal(0n); // ACTIVE
+      expect(info.lastCheckIn).to.be.greaterThan(0n);
     });
   });
 });

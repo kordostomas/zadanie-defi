@@ -9,3 +9,69 @@
 we're working on a project in 2 member team. read our assignment (DMBLOCK_Zadanie 2.pdf). we want to make a dApp for this     
   ▎ website "Gymfinder" (gymfinder.sk), analyse this website. our plan is to make dApp based on this UML diagram: @startuml       
   ▎ GymFinder Loyalty System ... [the full UML]. plan this project and implement it into our project structure. 
+
+there is a large isue within the contract - self check in. 
+this is only callable by the branch owner takes in the user's address and gives them the loyalty points. 
+this is also limited by rate limit in hours which the operator can set. limited to members only 
+-- add operators functionality - owner manages
+-- add branch registration for any address 
+-- add member registration - onlyOperator or selfRegistration (based on branch settings)
+-- unregister member - onlyOwner 
+-- add memberList array and getMembers
+-- deployGymBranch - make it public for anyone
+
+
+finish frontend (admin) and create a second one (branch deployable).
+add ERC-1155 URI for products, hosted on the admin loyalty.gymfinder.sk/metadata/{branch}/{productTokenId}
+admin - loyalty.gymfinder.sk (single factory instance)
+branch deployable - wherever the branch deploys (for testing branch.gymfinder.sk)
+-- the admin manages the branches. readonly RPC data like list of all branches, metamask of registration, contract owner withdrawal, change fee
+-- branch manages member list, settings of branch, operators. RPC only for gym info, shop product list. Members have metamask for self-registration, redeem products, see points. 
+Check in is managed on branch through a qr code scanner - scan user's wallet and operator mints tokens.
+-- branch has operator private key (for onchain access - without metamask)  stored in .env or database, stored securely encrypted, accessible via login password/pin — pin creates a backend session (JWT) for scanner access
+
+Brand Identity
+Clean, confident, and modern. The brand leans into bold red (#e60f0f) as the sole accent color — used sparingly but decisively on CTAs, tags, and the logo. Everything else is near-white backgrounds with dark neutral text, creating high contrast without visual noise.
+
+Typography
+Headers are heavy, extra-bold, large — assertive and dominant, black on white
+
+Body/subtitles are light gray, small, airy — acts as a whisper under the shout of the heading
+
+Navigation links are medium weight, neutral, minimal — no decoration, no fuss
+
+Font feel: modern sans-serif, geometric, professional
+
+Color Palette
+Role	Value
+Primary accent	#e60f0f
+Background	#ffffff / #f7f7f7
+Primary text	#111111
+Secondary text	#888888
+Card background	#ffffff
+Borders/dividers	very subtle #e5e5e5
+Layout & Spacing
+Generous whitespace everywhere — breathes heavily, nothing feels cramped
+
+Top navbar: logo left, nav center, user avatar right — standard but well-balanced
+
+Breadcrumb trail below nav — small, muted, shows hierarchy without taking space
+
+Hero section: massive bold headline, one-liner subtitle, single bold red CTA button — nothing else
+
+Card grid: 4 columns, equal-width, clean card shadow, photo-first with a price/tag overlay badge in top corners
+
+Cards have rounded corners (medium radius ~8–12px), subtle drop shadow
+
+Interactive Elements
+Primary buttons: red fill #e60f0f, white text, rounded pill shape, bold label — high energy
+
+Secondary/filter buttons: white or light gray fill, dark text, outlined or soft — lower hierarchy
+
+Tags/badges: small pill badges overlaid on images, red or white fill with tight padding
+
+Links: red text, no underline — consistent with the accent system
+
+Vibe in One Sentence
+Bold-headline minimalism with a confident red accent system — lots of air, strict hierarchy, and one color that does all the talking.
+
