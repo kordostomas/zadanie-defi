@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "GymFinder Loyalty dApp",
-  description: "DMBLOCK Assignment 2 — GymFinder Loyalty System",
+  title: "GymFinder Admin — Loyalty Platform",
+  description: "GymFinder platform admin — manage branches, fees, and treasury",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

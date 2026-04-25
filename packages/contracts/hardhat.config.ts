@@ -18,9 +18,12 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    hardhat: {},
+    hardhat: {
+      allowUnlimitedContractSize: true,
+    },
     localhost: {
       url: "http://127.0.0.1:8545",
+      allowUnlimitedContractSize: true,
     },
     sepolia: {
       url: SEPOLIA_RPC_URL,

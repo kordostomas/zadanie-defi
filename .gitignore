@@ -14,9 +14,12 @@ packages/contracts/coverage/
 packages/contracts/coverage.json
 
 # Next.js
-packages/frontend/.next/
-packages/frontend/out/
-packages/frontend/src/generated/
+packages/admin/.next/
+packages/branch/.next/
+packages/admin/out/
+packages/branch/out/
+packages/admin/src/generated/
+packages/branch/src/generated/
 
 # pnpm
 .pnpm-store/

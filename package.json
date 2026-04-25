@@ -2,13 +2,14 @@
   "name": "zadanie-defi",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter frontend run dev",
-    "build": "pnpm --filter contracts run compile && pnpm --filter frontend run build",
-    "test": "pnpm --filter contracts run test",
-    "coverage": "pnpm --filter contracts run coverage",
-    "deploy:local": "pnpm --filter contracts run deploy:local",
-    "deploy:sepolia": "pnpm --filter contracts run deploy:sepolia",
-    "sync:abi": "pnpm --filter frontend run sync:abi"
+    "dev:admin":   "pnpm --filter @zadanie-defi/admin run dev",
+    "dev:branch":  "pnpm --filter @zadanie-defi/branch run dev",
+    "build":       "pnpm --filter @zadanie-defi/contracts run compile && pnpm --filter @zadanie-defi/admin run build && pnpm --filter @zadanie-defi/branch run build",
+    "test":        "pnpm --filter @zadanie-defi/contracts run test",
+    "coverage":    "pnpm --filter @zadanie-defi/contracts run coverage",
+    "deploy:local":  "pnpm --filter @zadanie-defi/contracts run deploy:local",
+    "deploy:sepolia": "pnpm --filter @zadanie-defi/contracts run deploy:sepolia",
+    "sync:abi":    "pnpm --filter @zadanie-defi/contracts run export-abi"
   },
   "devDependencies": {
     "typescript": "^5.7.3"

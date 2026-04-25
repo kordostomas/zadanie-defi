@@ -1,11 +1,11 @@
 {
-  "name": "@zadanie-defi/frontend",
+  "name": "@zadanie-defi/admin",
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3000",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 3000",
     "lint": "next lint",
     "sync:abi": "pnpm --filter @zadanie-defi/contracts run export-abi"
   },
