@@ -33,6 +33,7 @@ contract GymFinderFactory is Ownable {
     mapping(address => address) public gymOwnerOf;      // gymBranch → gym owner EOA
 
     uint256 public platformFeePercent;
+    uint256 public registrationFee;
 
     event GymBranchDeployed(
         address indexed gymBranch,
@@ -44,9 +45,11 @@ contract GymFinderFactory is Ownable {
     event PlatformFeesCollected(uint256 amount);
 
     /// @param _platformFeePercent  Percentage (0–100) of monthly fees kept by the platform.
-    constructor(uint256 _platformFeePercent) Ownable(msg.sender) {
+    /// @param _platformFeePercent  Registration fee
+    constructor(uint256 _platformFeePercent, uint256 _registrationFee) Ownable(msg.sender) {
         require(_platformFeePercent <= 100, "GymFinderFactory: invalid fee");
         platformFeePercent = _platformFeePercent;
+        registrationFee = _registrationFee;
 
         // Global loyalty points token; factory = admin so it can grant roles.
         loyaltyToken = new LoyaltyToken(address(this));
@@ -71,7 +74,12 @@ contract GymFinderFactory is Ownable {
         address          gymOwner,
         uint256          monthlyFee,
         uint256          pointsPerVisit
-    ) external onlyOwner returns (address gymBranchAddr) {
+    ) external payable returns (address gymBranchAddr) {
+        require(msg.value == registrationFee, "GymFinderFactory: wrong registration fee");
+
+        (bool ok,) = paymentSplitter.gymFinderTreasury().call{value: msg.value}("");
+        require(ok, "GymFinderFactory: fee transfer failed");
+
         // 1. Deploy GymBranch
         GymBranch gymBranch = new GymBranch(
             gymName,
@@ -119,6 +127,11 @@ contract GymFinderFactory is Ownable {
         platformFeePercent = newFee;
         paymentSplitter.updateFeePercent(newFee);
         emit PlatformFeeUpdated(newFee);
+    }
+
+    /// @notice Update registration fee
+    function setRegistrationFee(uint256 fee) external onlyOwner {
+        registrationFee = fee;
     }
 
     // ── Views ─────────────────────────────────────────────────────────────────
