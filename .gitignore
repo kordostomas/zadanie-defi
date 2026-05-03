@@ -1,6 +1,7 @@
 # env
 .env
 .env.local
+.env.prod
 
 # dependencies
 node_modules/

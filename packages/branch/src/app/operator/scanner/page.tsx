@@ -91,8 +91,10 @@ export default function ScannerPage() {
     <>
       <nav className="topnav">
         <div className="topnav-logo">GymFinder <span>·</span> Scanner</div>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <Link href="/operator/members" style={{ fontSize: "0.82rem", color: "#888", textDecoration: "none" }}>Members</Link>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <Link href="/operator/members">
+            <button className="sm secondary">Members</button>
+          </Link>
           <button className="sm secondary" onClick={handleLogout}>Logout</button>
         </div>
       </nav>

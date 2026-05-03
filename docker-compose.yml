@@ -3,9 +3,9 @@ version: "3.9"
 # Local demo: Hardhat node + admin app + branch app, all pointing at chainId 31337.
 #
 # Usage:
-#   1. docker compose up hardhat-node
-#   2. (in another terminal) pnpm deploy:local
-#   3. docker compose up admin branch
+#   1. docker compose --env-file .env.hardhat up hardhat-node -d
+#   2. pnpm deploy:local          (prints NEXT_PUBLIC_BRANCH_ADDRESS — paste into .env.hardhat)
+#   3. docker compose --env-file .env.hardhat up --build admin branch
 
 services:
   hardhat-node:
@@ -36,10 +36,11 @@ services:
       args:
         NEXT_PUBLIC_CHAIN_ID: "31337"
         NEXT_PUBLIC_RPC_URL: "http://hardhat-node:8545"
+        NEXT_PUBLIC_BRANCH_ADDRESS: "${NEXT_PUBLIC_BRANCH_ADDRESS}"
+        NEXT_PUBLIC_BRANCH_NAME: "${NEXT_PUBLIC_BRANCH_NAME:-GymFinder}"
     ports:
       - "3001:3001"
     environment:
-      - NEXT_PUBLIC_BRANCH_ADDRESS=${NEXT_PUBLIC_BRANCH_ADDRESS}
       - OPERATOR_PRIVATE_KEY=${OPERATOR_PRIVATE_KEY}
       - OPERATOR_PIN_HASH=${OPERATOR_PIN_HASH}
       - JWT_SECRET=${JWT_SECRET}

@@ -1,4 +1,4 @@
-import { Contract, BrowserProvider, JsonRpcProvider, JsonRpcSigner } from "ethers";
+import { Contract, BrowserProvider, JsonRpcProvider, JsonRpcSigner, EventLog } from "ethers";
 import deployment from "../generated/deployment.json";
 
 // ── Addresses ──────────────────────────────────────────────────────────────
@@ -168,4 +168,45 @@ export async function readGymOwnerFees(ownerAddr: string, ps: BrowserProvider | 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const s = new Contract(SPLITTER_ADDRESS, (deployment.PaymentSplitter as { abi: any[] }).abi, ps);
   return s.getAccumulatedFees(ownerAddr) as Promise<bigint>;
+}
+
+export interface RedemptionEvent {
+  user:         string;
+  productId:    number;
+  productName:  string;
+  productType:  number;
+  pointsBurned: bigint;
+  blockNumber:  number;
+  txHash:       string;
+}
+
+export async function readRedemptions(
+  shopAddr: string,
+  ps: BrowserProvider | JsonRpcProvider
+): Promise<RedemptionEvent[]> {
+  const branch   = getGymBranch(ps);
+  const fromBlock = (deployment as { blockNumber?: number }).blockNumber ?? 0;
+  const raw = await branch.queryFilter(branch.filters.ProductRedeemed(), fromBlock);
+
+  const products = await readProducts(shopAddr, ps);
+  const byId     = new Map(products.map(p => [p.id, p]));
+
+  return raw
+    .map(e => {
+      const log          = e as EventLog;
+      const user         = log.args[0] as string;
+      const productId    = Number(log.args[1] as bigint);
+      const pointsBurned = log.args[2] as bigint;
+      const product      = byId.get(productId);
+      return {
+        user,
+        productId,
+        productName:  product?.name ?? `Product #${productId}`,
+        productType:  product?.productType ?? -1,
+        pointsBurned,
+        blockNumber:  e.blockNumber,
+        txHash:       e.transactionHash,
+      };
+    })
+    .reverse();
 }

@@ -157,14 +157,29 @@ async function main() {
   // ── Summary ───────────────────────────────────────────────────────────────
   console.log("\n✅ Deployment complete!\n");
   console.log("─".repeat(60));
-  console.log("Branch app .env values for this deployment:");
-  console.log(`  NEXT_PUBLIC_BRANCH_ADDRESS=${demoGymBranch}`);
+  console.log("Contract addresses:");
+  console.log(`  GymFinderFactory  = ${factoryAddress}`);
+  console.log(`  LoyaltyToken      = ${loyaltyTokenAddress}`);
+  console.log(`  PaymentSplitter   = ${splitterAddress}`);
+  console.log(`  GymBranch (demo)  = ${demoGymBranch}`);
+  console.log(`  ShopProduct (demo)= ${demoShopProduct}`);
+  console.log("\n.env values for docker-compose.prod.yml:");
   console.log(`  NEXT_PUBLIC_CHAIN_ID=${chainId}`);
-  if (network === "localhost" || network === "hardhat") {
+  if (network === "sepolia") {
+    console.log(`  NEXT_PUBLIC_RPC_URL=${process.env.SEPOLIA_RPC_URL ?? "<SEPOLIA_RPC_URL>"}`);
+  } else {
     console.log(`  NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545`);
+  }
+  console.log(`  NEXT_PUBLIC_BRANCH_ADDRESS=${demoGymBranch}`);
+  console.log(`  NEXT_PUBLIC_BRANCH_NAME=GymFinder`);
+  if (network === "localhost" || network === "hardhat") {
     console.log(`  OPERATOR_PRIVATE_KEY=<hardhat account #0 private key>`);
     console.log("  OPERATOR_PIN_HASH=<run: node -e \"require('bcryptjs').hash('1234',10).then(console.log)\">");
     console.log("  JWT_SECRET=dev-secret-change-in-production");
+  } else if (network === "sepolia") {
+    console.log(`  OPERATOR_PRIVATE_KEY=<private key of ${deployer.address} or another operator>`);
+    console.log("  OPERATOR_PIN_HASH=<run: node -e \"require('bcryptjs').hash('YOUR_PIN',10).then(console.log)\">");
+    console.log("  JWT_SECRET=<random secret, e.g. openssl rand -hex 32>");
   }
   console.log("─".repeat(60));
 
