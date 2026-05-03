@@ -6,8 +6,9 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   if (!body?.pin) return NextResponse.json({ error: "PIN required" }, { status: 400 });
   
-  const pinHash = process.env.OPERATOR_PIN_HASH;
+  var pinHash = process.env.OPERATOR_PIN_HASH;
   if (!pinHash) return NextResponse.json({ error: "Operator PIN not configured" }, { status: 500 });
+  if(!pinHash.startsWith("$2b$")) pinHash = "$2a$14$" + pinHash; 
   console.log("Comparing PIN", body.pin, "with hash", pinHash);
   const valid = await bcrypt.compare(String(body.pin), pinHash);
   if (!valid) return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
