@@ -1,0 +1,74 @@
+Deploying from 0xaD4D815f1F62614d02801b6B1bD3756EC05E9c2D on sepolia (chainId 11155111)...
+  Platform fee: 20%
+  Registration fee: 0.0 ETH
+
+[1/4] Deploying GymFinderFactory...
+  GymFinderFactory  → 0x2100Dce7c46B418Cb0d2A9a4380BF1BC2878B2Bd
+  LoyaltyToken      → 0xac1E7f8bdBF2B038e0e7b6764e3d30F22983220f
+  PaymentSplitter   → 0x76ACb91AE990A36023e8BF48eb38e6aB47921e44
+
+[2/4] Deploying demo GymBranch...
+  GymBranch (demo)  → 0x75777978C67842ea843C4ebD7551e9e20Ca7B6bF
+  ShopProduct (demo)→ 0x7C6b0b99F9797990aF2FbeC815541F69f398F4ED
+
+[3/4] Configuring demo branch...
+  ✓ Self-registration enabled
+  ✓ Operator added: 0xaD4D815f1F62614d02801b6B1bD3756EC05E9c2D
+  + Product: "Protein Shake" (200 pts)
+  + Product: "Free Day Pass" (500 pts)
+  + Product: "10% T-Shirt Off" (150 pts)
+
+[4/4] Saving deployment manifest...
+  Deployment saved → deployments/11155111.json
+
+> @zadanie-defi/contracts@ export-abi C:\Users\Tomas\Documents\Code\STU\dmblock\zadanie-defi\packages\contracts
+> ts-node scripts/export-abi.ts
+
+Copied deployments/11155111.json → admin\src\generated\deployment.json
+Copied deployments/11155111.json → branch\src\generated\deployment.json
+
+✅ Deployment complete!
+
+────────────────────────────────────────────────────────────
+Contract addresses:
+  GymFinderFactory  = 0x2100Dce7c46B418Cb0d2A9a4380BF1BC2878B2Bd
+  LoyaltyToken      = 0xac1E7f8bdBF2B038e0e7b6764e3d30F22983220f
+  PaymentSplitter   = 0x76ACb91AE990A36023e8BF48eb38e6aB47921e44
+  GymBranch (demo)  = 0x75777978C67842ea843C4ebD7551e9e20Ca7B6bF
+  ShopProduct (demo)= 0x7C6b0b99F9797990aF2FbeC815541F69f398F4ED
+
+.env values for docker-compose.prod.yml:
+  NEXT_PUBLIC_CHAIN_ID=11155111
+  NEXT_PUBLIC_RPC_URL=https://sepolia.infura.io/v3/fa1548d3967d4f73a6cbe70b4305eb76
+  NEXT_PUBLIC_BRANCH_ADDRESS=0x75777978C67842ea843C4ebD7551e9e20Ca7B6bF
+  NEXT_PUBLIC_BRANCH_NAME=GymFinder
+  OPERATOR_PRIVATE_KEY=<private key of 0xaD4D815f1F62614d02801b6B1bD3756EC05E9c2D or another operator>
+  OPERATOR_PIN_HASH=<run: node -e "require('bcryptjs').hash('YOUR_PIN',10).then(console.log)">
+  JWT_SECRET=<random secret, e.g. openssl rand -hex 32>
+────────────────────────────────────────────────────────────
+
+Waiting for extra confirmations before Etherscan verification...
+Successfully submitted source code for contract
+contracts/GymFinderFactory.sol:GymFinderFactory at 0x2100Dce7c46B418Cb0d2A9a4380BF1BC2878B2Bd
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract GymFinderFactory on the block explorer.
+https://sepolia.etherscan.io/address/0x2100Dce7c46B418Cb0d2A9a4380BF1BC2878B2Bd#code
+
+  ✓ GymFinderFactory verified
+Successfully submitted source code for contract
+contracts/LoyaltyToken.sol:LoyaltyToken at 0xac1E7f8bdBF2B038e0e7b6764e3d30F22983220f
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract LoyaltyToken on the block explorer.
+https://sepolia.etherscan.io/address/0xac1E7f8bdBF2B038e0e7b6764e3d30F22983220f#code
+
+  ✓ LoyaltyToken verified
+Successfully submitted source code for contract
+contracts/PaymentSplitter.sol:PaymentSplitter at 0x76ACb91AE990A36023e8BF48eb38e6aB47921e44
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract PaymentSplitter on the block explorer.
+https://sepolia.etherscan.io/address/0x76ACb91AE990A36023e8BF48eb38e6aB47921e44#code
+
+  ✓ PaymentSplitter verified

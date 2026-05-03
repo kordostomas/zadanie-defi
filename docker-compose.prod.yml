@@ -1,0 +1,43 @@
+version: "3.9"
+
+# Production: admin + branch pointing at a live chain (e.g. Sepolia).
+#
+# Usage:
+#   1. Fill SEPOLIA_RPC_URL / PRIVATE_KEY / ETHERSCAN_API_KEY in .env.prod, then:
+#      pnpm deploy:sepolia
+#   2. Paste the printed addresses into the Docker build section of .env.prod.
+#   3. docker compose -f docker-compose.prod.yml --env-file .env.prod up --build -d
+#
+# All NEXT_PUBLIC_* vars are baked into the Next.js bundle at build time (build args).
+# Server-side secrets (OPERATOR_PRIVATE_KEY, JWT_SECRET, OPERATOR_PIN_HASH) are
+# injected at runtime via the environment section below — never baked in.
+
+services:
+  admin:
+    image: ghcr.io/kordostomas/zadanie-defi-admin:latest
+    build:
+      context: .
+      dockerfile: packages/admin/Dockerfile
+      args:
+        NEXT_PUBLIC_CHAIN_ID: "${NEXT_PUBLIC_CHAIN_ID}"
+        NEXT_PUBLIC_RPC_URL: "${NEXT_PUBLIC_RPC_URL}"
+    ports:
+      - "3000:3000"
+
+  branch:
+    image: ghcr.io/kordostomas/zadanie-defi-branch:latest
+    build:
+      context: .
+      dockerfile: packages/branch/Dockerfile
+      args:
+        NEXT_PUBLIC_CHAIN_ID: "${NEXT_PUBLIC_CHAIN_ID}"
+        NEXT_PUBLIC_RPC_URL: "${NEXT_PUBLIC_RPC_URL}"
+        NEXT_PUBLIC_BRANCH_ADDRESS: "${NEXT_PUBLIC_BRANCH_ADDRESS}"
+        NEXT_PUBLIC_BRANCH_NAME: "${NEXT_PUBLIC_BRANCH_NAME:-GymFinder}"
+    ports:
+      - "3001:3001"
+    environment:
+      - OPERATOR_PRIVATE_KEY=${OPERATOR_PRIVATE_KEY}
+      - OPERATOR_PIN_HASH=${OPERATOR_PIN_HASH}
+      - JWT_SECRET=${JWT_SECRET}
+      
