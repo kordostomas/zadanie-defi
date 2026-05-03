@@ -206,6 +206,42 @@ The operator key never touches the browser. The JWT prevents unauthorized access
 - The branch Dockerfile is not yet written (admin Dockerfile is inherited from the scaffold).
 - `docker-compose.yml` requires manually running `deploy:local` before the frontends start.
 
+## What we learned
+
+**Factory pattern for contract families.** Deploying `GymBranch` + `ShopProduct` as a coordinated pair through `GymFinderFactory` taught us how to structure multi-contract systems where each instance shares global infrastructure (the same `LoyaltyToken` and `PaymentSplitter`) while remaining independently configurable. Tracking deployed addresses and syncing them into two separate frontends automatically was a design challenge that paid off significantly during development.
+
+**ERC-1155 as an on-chain redemption proof.** Using ERC-1155 token minting as a receipt for shop redemptions was a non-obvious pattern we settled on after ruling out simpler mappings. Each token ID corresponds to a product; owning one is cryptographic proof the redemption happened. This also opens the door to transferable or tradeable rewards in the future without any contract changes.
+
+**Hybrid authentication — on-chain and off-chain at the same time.** The operator flow (PIN → JWT session → server-signed check-in transaction) showed us that a dApp does not have to force every participant onto MetaMask. Gym operators are staff, not crypto users; a PIN is the right UX for them. The blockchain still settles the final state; the server just acts as a trusted signer scoped to one operation. Getting the two auth layers to coexist cleanly (wallet context for members, cookie-based JWT for operators) required careful separation of concerns.
+
+**MetaMask connection lifecycle is harder than it looks.** Managing `eth_accounts` vs. `eth_requestAccounts`, persisting wallet state across page refreshes via cookies, silently reconnecting on mount without triggering a popup, and propagating `accountsChanged`/`chainChanged` events through a React context — each of these is a small problem that compounds quickly. We ended up building a dedicated `WalletContext` to centralize the logic, which made every page simpler.
+
+**On-chain vs. off-chain tradeoffs are constant.** Every feature forced a decision: does this belong in the contract or on the server? Rate-limiting check-ins on-chain avoids double-spending but costs gas. Storing the operator PIN off-chain avoids key management on-chain but introduces a trusted server. Making these decisions explicitly — and being able to justify them — was the most valuable part of the project.
+
+**Hardhat deploy script design.** Writing an idempotent deploy script (skip if the contract already has live code, re-deploy on a stale local chain, auto-sync ABIs into both frontends, print the exact `.env` block the frontend needs) saved us many hours of manual work and made Sepolia re-deployments friction-free.
+
+## Conclusion
+
+GymFinder Loyalty is a fully functional on-chain loyalty system for gym chains. Members earn ERC-20 points on every check-in and spend them in an ERC-1155 reward shop — all settled on Sepolia, with contracts verified on Etherscan. The platform handles two distinct user roles (wallet-connected members/owners and PIN-authenticated staff operators) through a layered authentication model that keeps the blockchain as the source of truth without forcing every participant to hold ETH.
+
+The core objective of the assignment — a deployed, verifiable dApp with a working frontend, meaningful smart contract logic, and real on-chain interactions — is met in full. Beyond the baseline, the project includes a multi-contract factory architecture, a server-side operator signing model that is uncommon in typical dApp tutorials, ERC-1155 redemption proofs, and a two-app deployment (admin + branch) designed to serve different stakeholders independently.
+
+Given more time, we would add a proper upgrade path (proxy contracts or a migration registry), multi-wallet support beyond MetaMask, and a hosted public frontend on Vercel for the branch app.
+
 ## AI tool usage
 
-This project was built with assistance from **Claude Sonnet 4.6** (Anthropic Claude Code CLI). Claude generated contract architecture, Solidity code, Hardhat config, deploy/export scripts, and both Next.js applications. All design decisions — loyalty protocol logic, operator authentication model, ERC-1155 redemption-proof pattern, payment splitter design, and security patterns — were made by the authors. The final concept and protocol are the authors' own work.
+The primary tool used throughout this project was **Claude Sonnet 4.6** via the Anthropic Claude Code CLI.
+
+**Where and to what extent it was used:**
+
+| Area | Extent |
+|---|---|
+| Solidity contracts (`GymFinderFactory`, `GymBranch`, `ShopProduct`, `LoyaltyToken`, `PaymentSplitter`) | High — Claude drafted and iterated on the contract code based on requirements specified by the authors |
+| Hardhat config, deploy script, ABI export script | High — Claude wrote and refined the tooling scripts |
+| Next.js branch app (pages, components, wallet context) | High — Claude generated and refactored the frontend code |
+| Next.js admin app | Medium — scaffolded by Claude, extended by the authors |
+| Contract test suite | Medium — Claude generated test skeletons; authors wrote additional edge-case tests |
+| Architecture and protocol design | **Authors** — the loyalty system concept, operator authentication model, ERC-1155 redemption-proof pattern, payment splitter design, and two-app deployment strategy were designed by the authors |
+| Design decisions and trade-offs | **Authors** — all decisions about what goes on-chain vs. off-chain, access control structure, and UX flows were made by the authors and can be defended in the presentation |
+
+All code generated by AI was reviewed, understood, and in many cases modified by the authors before being committed. No code was copy-pasted from tutorials or canonical protocol repositories.
