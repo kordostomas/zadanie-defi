@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BottomNav } from "../../page";
 
 type ScanState = "idle" | "scanning" | "submitting" | "success" | "error";
 
@@ -190,6 +191,8 @@ export default function ScannerPage() {
           </div>
         )}
       </div>
+
+      <BottomNav active="operator" />
     </>
   );
 }

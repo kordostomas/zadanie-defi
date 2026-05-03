@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BottomNav } from "../../page";
 
 const PIN_LENGTH = 4;
 
@@ -97,6 +98,8 @@ export default function OperatorLoginPage() {
           PIN is set by the gym administrator via the <code>.env</code> file.
         </p>
       </div>
+
+      <BottomNav active="operator" />
     </>
   );
 }

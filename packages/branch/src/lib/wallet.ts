@@ -70,3 +70,40 @@ export function onChainChange(cb: () => void): () => void {
   window.ethereum!.on("chainChanged", handler);
   return () => window.ethereum!.removeListener("chainChanged", handler);
 }
+
+const WALLET_COOKIE = "wallet_addr";
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
+
+export function markWalletConnected(address: string): void {
+  document.cookie = `${WALLET_COOKIE}=${address}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Strict`;
+}
+
+export function clearWalletConnected(): void {
+  document.cookie = `${WALLET_COOKIE}=; path=/; max-age=0; SameSite=Strict`;
+}
+
+export function wasWalletConnected(): boolean {
+  return getStoredWalletAddress() !== null;
+}
+
+export function getStoredWalletAddress(): string | null {
+  if (typeof document === "undefined") return null;
+  const entry = document.cookie.split(";").find(c => c.trim().startsWith(`${WALLET_COOKIE}=`));
+  if (!entry) return null;
+  const value = entry.trim().slice(WALLET_COOKIE.length + 1);
+  return value || null;
+}
+
+export async function reconnectWallet(): Promise<{
+  provider: BrowserProvider; signer: JsonRpcSigner; address: string;
+} | null> {
+  if (!isMetaMaskAvailable()) return null;
+  const provider = new BrowserProvider(window.ethereum!);
+  const accounts = await provider.send("eth_accounts", []) as string[];
+  if (!accounts.length) return null;
+  const network = await provider.getNetwork();
+  if (Number(network.chainId) !== TARGET_CHAIN_ID) return null;
+  const signer = await provider.getSigner();
+  const address = await signer.getAddress();
+  return { provider, signer, address };
+}

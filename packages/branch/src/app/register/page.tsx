@@ -1,19 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BrowserProvider, JsonRpcSigner } from "ethers";
-import { connectWallet, isMetaMaskAvailable, onAccountChange, onChainChange } from "@/lib/wallet";
+import { isMetaMaskAvailable } from "@/lib/wallet";
 import { getGymBranch, readIsMember, getReadProvider } from "@/lib/contract";
 import { useTx } from "@/lib/useTx";
+import { useWallet } from "@/lib/WalletContext";
 import { BottomNav } from "../page";
 
 export default function RegisterPage() {
-  const [provider, setProvider] = useState<BrowserProvider | null>(null);
-  const [signer,   setSigner]   = useState<JsonRpcSigner | null>(null);
-  const [address,  setAddress]  = useState<string | null>(null);
+  const { address, signer, connect, error: connErr } = useWallet();
   const [isMember, setIsMember] = useState<boolean | null>(null);
   const [selfReg,  setSelfReg]  = useState(false);
-  const [connErr,  setConnErr]  = useState<string | null>(null);
   const tx = useTx();
 
   useEffect(() => {
@@ -23,28 +20,10 @@ export default function RegisterPage() {
   }, []);
 
   useEffect(() => {
-    const unA = onAccountChange(() => window.location.reload());
-    const unC = onChainChange(() => window.location.reload());
-    return () => { unA(); unC(); };
-  }, []);
-
-  useEffect(() => {
     if (!address) return;
     const p = getReadProvider();
     readIsMember(address, p as Parameters<typeof readIsMember>[1]).then(setIsMember).catch(() => {});
   }, [address, tx.state.status]);
-
-  async function handleConnect() {
-    setConnErr(null);
-    try {
-      const r = await connectWallet();
-      setProvider(r.provider);
-      setSigner(r.signer);
-      setAddress(r.address);
-    } catch (e) {
-      setConnErr(e instanceof Error ? e.message : "Connection failed");
-    }
-  }
 
   async function handleRegister() {
     if (!signer || !address) return;
@@ -73,7 +52,7 @@ export default function RegisterPage() {
                   MetaMask not detected. Please install it from metamask.io.
                 </p>
               )}
-              <button className="full" onClick={handleConnect} disabled={!isMetaMaskAvailable()}>
+              <button className="full" onClick={connect} disabled={!isMetaMaskAvailable()}>
                 Connect MetaMask
               </button>
               {connErr && <div className="status error">{connErr}</div>}
