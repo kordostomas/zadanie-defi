@@ -9,7 +9,9 @@ export const LOYALTY_ADDRESS  = deployment.LoyaltyToken.address;
 export const SPLITTER_ADDRESS = deployment.PaymentSplitter.address;
 
 // Branch address is per-deployment (set via NEXT_PUBLIC_BRANCH_ADDRESS)
-export const BRANCH_ADDRESS   = process.env.NEXT_PUBLIC_BRANCH_ADDRESS ?? "";
+const DEPLOYED_BRANCH_ADDRESS =
+  (deployment as { GymBranch?: { address?: string } }).GymBranch?.address ?? "";
+export const BRANCH_ADDRESS = process.env.NEXT_PUBLIC_BRANCH_ADDRESS ?? DEPLOYED_BRANCH_ADDRESS;
 
 export const ETHERSCAN_BASE =
   deployment.chainId === 11155111 ? "https://sepolia.etherscan.io" :
@@ -93,6 +95,16 @@ export interface MemberInfo {
   lastCheckIn:   bigint;
 }
 
+export interface RedemptionEvent {
+  user:         string;
+  productId:    number;
+  productName:  string;
+  productType:  number;
+  pointsBurned: bigint;
+  blockNumber:  number;
+  txHash:       string;
+}
+
 export const PRODUCT_TYPE_LABEL: Record<number, string> = { 0: "Physical", 1: "Service", 2: "Discount" };
 export const MEMBER_STATUS_LABEL: Record<number, string> = { 0: "Active", 1: "Expired", 2: "Suspended" };
 
@@ -170,43 +182,31 @@ export async function readGymOwnerFees(ownerAddr: string, ps: BrowserProvider | 
   return s.getAccumulatedFees(ownerAddr) as Promise<bigint>;
 }
 
-export interface RedemptionEvent {
-  user:         string;
-  productId:    number;
-  productName:  string;
-  productType:  number;
-  pointsBurned: bigint;
-  blockNumber:  number;
-  txHash:       string;
-}
-
 export async function readRedemptions(
   shopAddr: string,
   ps: BrowserProvider | JsonRpcProvider
 ): Promise<RedemptionEvent[]> {
-  const branch   = getGymBranch(ps);
+  const branch = getGymBranch(ps);
   const fromBlock = (deployment as { blockNumber?: number }).blockNumber ?? 0;
   const raw = await branch.queryFilter(branch.filters.ProductRedeemed(), fromBlock);
 
   const products = await readProducts(shopAddr, ps);
-  const byId     = new Map(products.map(p => [p.id, p]));
+  const byId = new Map(products.map(p => [p.id, p]));
 
-  return raw
-    .map(e => {
-      const log          = e as EventLog;
-      const user         = log.args[0] as string;
-      const productId    = Number(log.args[1] as bigint);
-      const pointsBurned = log.args[2] as bigint;
-      const product      = byId.get(productId);
-      return {
-        user,
-        productId,
-        productName:  product?.name ?? `Product #${productId}`,
-        productType:  product?.productType ?? -1,
-        pointsBurned,
-        blockNumber:  e.blockNumber,
-        txHash:       e.transactionHash,
-      };
-    })
-    .reverse();
+  return raw.map(e => {
+    const log = e as EventLog;
+    const user = log.args[0] as string;
+    const productId = Number(log.args[1] as bigint);
+    const pointsBurned = log.args[2] as bigint;
+    const product = byId.get(productId);
+    return {
+      user,
+      productId,
+      productName: product?.name ?? `Product #${productId}`,
+      productType: product?.productType ?? -1,
+      pointsBurned,
+      blockNumber: e.blockNumber,
+      txHash: e.transactionHash,
+    };
+  });
 }

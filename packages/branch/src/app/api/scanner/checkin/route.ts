@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
   }
 
   // Config
-  const branchAddress = process.env.NEXT_PUBLIC_BRANCH_ADDRESS;
+  const branchAddress = process.env.NEXT_PUBLIC_BRANCH_ADDRESS
+    ?? (deployment as { GymBranch?: { address?: string } }).GymBranch?.address
+    ?? "";
   const operatorKey   = process.env.OPERATOR_PRIVATE_KEY;
   const rpcUrl        = process.env.NEXT_PUBLIC_RPC_URL ?? "http://127.0.0.1:8545";
 
