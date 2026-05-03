@@ -40,11 +40,19 @@ Full component diagram: [ARCHITECTURE.md](./ARCHITECTURE.md)
 | `GymBranch` | One per gym. Members, operators, check-in rate-limit, subscription, shop delegation. |
 | `ShopProduct` | ERC-1155 per gym. Each token ID is a product type; minting = on-chain redemption proof. URI: `loyalty.gymfinder.sk/metadata/{branch}/{tokenId}` |
 
-## Deployed contract
+## Deployed contracts (Sepolia)
 
-| Network | Address | Explorer |
+Deployed **2026-05-03** · block **10,780,659** · deployer `0xaD4D815f1F62614d02801b6B1bD3756EC05E9c2D`
+
+| Contract | Address | Explorer |
 |---|---|---|
-| Sepolia | *(fill in after deployment)* | *(fill in)* |
+| `GymFinderFactory` | `0x2100Dce7c46B418Cb0d2A9a4380BF1BC2878B2Bd` | [View ↗](https://sepolia.etherscan.io/address/0x2100Dce7c46B418Cb0d2A9a4380BF1BC2878B2Bd) |
+| `LoyaltyToken` (ERC-20) | `0xac1E7f8bdBF2B038e0e7b6764e3d30F22983220f` | [View ↗](https://sepolia.etherscan.io/address/0xac1E7f8bdBF2B038e0e7b6764e3d30F22983220f) |
+| `PaymentSplitter` | `0x76ACb91AE990A36023e8BF48eb38e6aB47921e44` | [View ↗](https://sepolia.etherscan.io/address/0x76ACb91AE990A36023e8BF48eb38e6aB47921e44) |
+| `GymBranch` (demo) | `0x75777978C67842ea843C4ebD7551e9e20Ca7B6bF` | [View ↗](https://sepolia.etherscan.io/address/0x75777978C67842ea843C4ebD7551e9e20Ca7B6bF) |
+| `ShopProduct` (demo, ERC-1155) | `0x7C6b0b99F9797990aF2FbeC815541F69f398F4ED` | [View ↗](https://sepolia.etherscan.io/address/0x7C6b0b99F9797990aF2FbeC815541F69f398F4ED) |
+
+Full deployment manifest: [`packages/contracts/deployments/11155111.json`](./packages/contracts/deployments/11155111.json)
 
 ## Setup
 
@@ -107,10 +115,59 @@ pnpm coverage   # coverage report
 
 ### Deploy to Sepolia
 
-1. Copy `.env.example` to `.env` and fill in `SEPOLIA_RPC_URL`, `PRIVATE_KEY`, `ETHERSCAN_API_KEY`.
-2. `pnpm deploy:sepolia`
-3. The script waits for confirmations and runs Etherscan verification automatically.
-4. `pnpm sync:abi` to push addresses to both frontends.
+#### 1. Create the root `.env`
+
+```bash
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/<your-key>   # or Alchemy / any Sepolia RPC
+PRIVATE_KEY=0x<deployer-private-key>                       # must hold Sepolia ETH
+ETHERSCAN_API_KEY=<from etherscan.io/myapikey>
+```
+
+#### 2. Deploy contracts
+
+```bash
+pnpm deploy:sepolia
+```
+
+The script:
+- Deploys `GymFinderFactory`, `LoyaltyToken`, and `PaymentSplitter`
+- Creates a demo `GymBranch` + `ShopProduct` pair owned by the deployer
+- Waits for 5 confirmations, then auto-verifies all three root contracts on Etherscan
+- Saves addresses to `packages/contracts/deployments/11155111.json`
+- Prints the exact `.env` block you need for the branch app
+
+> **Re-deploying?** Add `--force` to overwrite an existing deployment: `pnpm --filter @zadanie-defi/contracts run deploy:sepolia -- --force`
+
+#### 3. Sync ABIs into both frontends
+
+```bash
+pnpm sync:abi
+```
+
+#### 4. Configure `packages/branch/.env`
+
+Use the values printed at the end of the deploy script:
+
+```bash
+NEXT_PUBLIC_CHAIN_ID=11155111
+NEXT_PUBLIC_RPC_URL=https://sepolia.infura.io/v3/<your-key>
+NEXT_PUBLIC_BRANCH_ADDRESS=<GymBranch address from deploy output>
+NEXT_PUBLIC_BRANCH_NAME="Your Gym Name"
+
+# Server-side operator key — signs check-in transactions, never exposed to browser
+OPERATOR_PRIVATE_KEY=0x<operator-wallet-private-key>
+
+# bcrypt hash of your 4-digit PIN
+# node -e "require('bcryptjs').hash('1234', 10).then(console.log)"
+OPERATOR_PIN_HASH='$2b$10$...'
+
+# Random secret — openssl rand -hex 32
+JWT_SECRET=<random-hex-string>
+```
+
+#### 5. MetaMask setup for Sepolia
+
+Sepolia is a built-in network in MetaMask. Switch to it and fund your wallet from a [Sepolia faucet](https://sepoliafaucet.com/) before interacting with the app.
 
 ### Docker
 
