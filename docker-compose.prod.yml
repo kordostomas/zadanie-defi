@@ -19,7 +19,7 @@ services:
       context: .
       dockerfile: packages/admin/Dockerfile
       args:
-        NEXT_PUBLIC_CHAIN_ID: "${NEXT_PUBLIC_CHAIN_ID}"
+        NEXT_PUBLIC_CHAIN_ID: "${NEXT_PUBLIC_CHAIN_ID:-11155111}"
         NEXT_PUBLIC_RPC_URL: "${NEXT_PUBLIC_RPC_URL}"
     ports:
       - "3000:3000"
@@ -30,7 +30,7 @@ services:
       context: .
       dockerfile: packages/branch/Dockerfile
       args:
-        NEXT_PUBLIC_CHAIN_ID: "${NEXT_PUBLIC_CHAIN_ID}"
+        NEXT_PUBLIC_CHAIN_ID: "${NEXT_PUBLIC_CHAIN_ID:-11155111}"
         NEXT_PUBLIC_RPC_URL: "${NEXT_PUBLIC_RPC_URL}"
         NEXT_PUBLIC_BRANCH_ADDRESS: "${NEXT_PUBLIC_BRANCH_ADDRESS}"
         NEXT_PUBLIC_BRANCH_NAME: "${NEXT_PUBLIC_BRANCH_NAME:-GymFinder}"

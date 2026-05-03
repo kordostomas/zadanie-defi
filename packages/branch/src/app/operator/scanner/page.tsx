@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BottomNav } from "../../page";
+import { BottomNav } from "@/components/BottomNav";
 
 type ScanState = "idle" | "scanning" | "submitting" | "success" | "error";
 

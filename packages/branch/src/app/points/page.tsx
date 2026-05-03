@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { isMetaMaskAvailable } from "@/lib/wallet";
 import { readLoyaltyBalance, readMemberInfo, readIsMember, getReadProvider, MEMBER_STATUS_LABEL } from "@/lib/contract";
 import { useWallet } from "@/lib/WalletContext";
-import { BottomNav } from "../page";
+import { BottomNav } from "@/components/BottomNav";
 
 // QR code rendered client-side only
 const QRCodeSVG = dynamic(() => import("qrcode.react").then(m => m.QRCodeSVG), { ssr: false });

@@ -5,7 +5,7 @@ import { isMetaMaskAvailable } from "@/lib/wallet";
 import { getGymBranch, readIsMember, getReadProvider } from "@/lib/contract";
 import { useTx } from "@/lib/useTx";
 import { useWallet } from "@/lib/WalletContext";
-import { BottomNav } from "../page";
+import { BottomNav } from "@/components/BottomNav";
 
 export default function RegisterPage() {
   const { address, signer, connect, error: connErr } = useWallet();

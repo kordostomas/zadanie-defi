@@ -9,7 +9,7 @@ import {
   MEMBER_STATUS_LABEL, PRODUCT_TYPE_LABEL,
   type RedemptionEvent,
 } from "@/lib/contract";
-import { BottomNav } from "../../page";
+import { BottomNav } from "@/components/BottomNav";
 
 interface MemberRow {
   address:     string;

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BottomNav } from "../../page";
+import { BottomNav } from "@/components/BottomNav";
 
 const PIN_LENGTH = 4;
 

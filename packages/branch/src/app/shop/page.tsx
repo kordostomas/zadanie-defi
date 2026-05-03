@@ -9,7 +9,7 @@ import {
   getReadProvider, getGymBranch, PRODUCT_TYPE_LABEL,
 } from "@/lib/contract";
 import { useTx } from "@/lib/useTx";
-import { BottomNav } from "../page";
+import { BottomNav } from "@/components/BottomNav";
 
 export default function ShopPage() {
   const { signer, address, connect, isConnecting, error: connErr } = useWallet();
