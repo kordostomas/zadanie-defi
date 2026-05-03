@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BrowserProvider, JsonRpcSigner } from "ethers";
-import { connectWallet, isMetaMaskAvailable, onAccountChange, onChainChange } from "@/lib/wallet";
+import { isMetaMaskAvailable } from "@/lib/wallet";
+import { useWallet } from "@/lib/WalletContext";
 import {
   GymInfo, ProductInfo,
   readGymInfo, readProducts, readLoyaltyBalance, readIsMember,
@@ -12,14 +12,12 @@ import { useTx } from "@/lib/useTx";
 import { BottomNav } from "../page";
 
 export default function ShopPage() {
-  const [signer,   setSigner]   = useState<JsonRpcSigner | null>(null);
-  const [address,  setAddress]  = useState<string | null>(null);
+  const { signer, address, connect, isConnecting, error: connErr } = useWallet();
   const [gym,      setGym]      = useState<GymInfo | null>(null);
   const [products, setProducts] = useState<ProductInfo[]>([]);
   const [balance,  setBalance]  = useState<bigint>(0n);
   const [isMember, setIsMember] = useState(false);
   const [loading,  setLoading]  = useState(true);
-  const [connErr,  setConnErr]  = useState<string | null>(null);
   const redeemTx = useTx();
 
   const load = async (addr?: string) => {
@@ -42,29 +40,11 @@ export default function ShopPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(address ?? undefined); }, [address]);
 
   useEffect(() => {
     if (redeemTx.state.status === "mined" && address) load(address);
   }, [redeemTx.state.status]);
-
-  useEffect(() => {
-    const unA = onAccountChange(() => window.location.reload());
-    const unC = onChainChange(() => window.location.reload());
-    return () => { unA(); unC(); };
-  }, []);
-
-  async function handleConnect() {
-    setConnErr(null);
-    try {
-      const r = await connectWallet();
-      setSigner(r.signer);
-      setAddress(r.address);
-      await load(r.address);
-    } catch (e) {
-      setConnErr(e instanceof Error ? e.message : "Connection failed");
-    }
-  }
 
   async function handleRedeem(productId: number) {
     if (!signer) return;
@@ -98,8 +78,8 @@ export default function ShopPage() {
             <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.75rem" }}>
               Connect your wallet to redeem rewards.
             </p>
-            <button className="full" onClick={handleConnect} disabled={!isMetaMaskAvailable()}>
-              Connect Wallet
+            <button className="full" onClick={connect} disabled={!isMetaMaskAvailable() || isConnecting}>
+              {isConnecting ? "Connecting…" : "Connect Wallet"}
             </button>
             {connErr && <div className="status error">{connErr}</div>}
           </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { readMembers, readLoyaltyBalance, readMemberInfo, getReadProvider, MEMBER_STATUS_LABEL } from "@/lib/contract";
+import { BottomNav } from "../../page";
 
 interface MemberRow {
   address:     string;
@@ -130,6 +131,8 @@ export default function MembersPage() {
           </div>
         )}
       </div>
+
+      <BottomNav active="operator" />
     </>
   );
 }

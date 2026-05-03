@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BrowserProvider, JsonRpcSigner, formatEther } from "ethers";
-import { connectWallet, isMetaMaskAvailable, onAccountChange, onChainChange } from "@/lib/wallet";
+import { formatEther } from "ethers";
+import { isMetaMaskAvailable } from "@/lib/wallet";
+import { useWallet } from "@/lib/WalletContext";
 import {
   GymInfo, ProductInfo,
   readGymInfo, readProducts, readGymOwnerFees,
@@ -19,14 +20,12 @@ import { useTx } from "@/lib/useTx";
 type Tab = "products" | "operators" | "settings" | "members";
 
 export default function ManagePage() {
-  const [signer,    setSigner]    = useState<JsonRpcSigner | null>(null);
-  const [address,   setAddress]   = useState<string | null>(null);
+  const { signer, address, connect, isConnecting, error: connErr } = useWallet();
   const [gym,       setGym]       = useState<GymInfo | null>(null);
   const [products,  setProducts]  = useState<ProductInfo[]>([]);
   const [ownerFees, setOwnerFees] = useState<bigint>(0n);
   const [isOwner,   setIsOwner]   = useState(false);
   const [tab,       setTab]       = useState<Tab>("products");
-  const [connErr,   setConnErr]   = useState<string | null>(null);
 
   // Form: add product
   const [pName,  setPName]  = useState("");
@@ -76,29 +75,11 @@ export default function ManagePage() {
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(address ?? undefined); }, [load, address]);
 
   const anyMined = [addProductTx, awardTx, addOpTx, removeOpTx, paySubTx, withdrawTx, settingsTx, statusTx]
     .some(t => t.state.status === "mined");
   useEffect(() => { if (anyMined) load(address ?? undefined); }, [anyMined, load, address]);
-
-  useEffect(() => {
-    const unA = onAccountChange(() => window.location.reload());
-    const unC = onChainChange(() => window.location.reload());
-    return () => { unA(); unC(); };
-  }, []);
-
-  async function handleConnect() {
-    setConnErr(null);
-    try {
-      const r = await connectWallet();
-      setSigner(r.signer);
-      setAddress(r.address);
-      await load(r.address);
-    } catch (e) {
-      setConnErr(e instanceof Error ? e.message : "Connection failed");
-    }
-  }
 
   async function handleAddProduct() {
     if (!signer || !pName || !pCost) return;
@@ -161,8 +142,8 @@ export default function ManagePage() {
             </span>
           </div>
         ) : (
-          <button className="sm secondary" onClick={handleConnect} disabled={!isMetaMaskAvailable()}>
-            Connect
+          <button className="sm secondary" onClick={connect} disabled={!isMetaMaskAvailable() || isConnecting}>
+            {isConnecting ? "Connecting…" : "Connect"}
           </button>
         )}
       </nav>
@@ -178,7 +159,9 @@ export default function ManagePage() {
         {!address && (
           <div className="card" style={{ textAlign: "center" }}>
             <p className="muted" style={{ marginBottom: "1rem" }}>Connect the gym owner wallet to manage this branch.</p>
-            <button onClick={handleConnect} disabled={!isMetaMaskAvailable()}>Connect MetaMask</button>
+            <button onClick={connect} disabled={!isMetaMaskAvailable() || isConnecting}>
+              {isConnecting ? "Connecting…" : "Connect MetaMask"}
+            </button>
           </div>
         )}
 
