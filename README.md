@@ -185,6 +185,9 @@ Or use docker-compose for a self-contained local demo:
 
 ```bash
 docker compose up
+
+# Production ready compose
+docker compose -f docker-compose.prod.yml --env-file .env.prod up --build -d
 ```
 
 ## How check-in works (QR flow)
