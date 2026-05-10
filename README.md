@@ -240,8 +240,8 @@ The operator key never touches the browser. The JWT prevents unauthorized access
 
 - No upgrade mechanism on contracts; redeploying means a new address and re-syncing the JSON.
 - MetaMask is the only wallet integration.
-- The branch Dockerfile is not yet written (admin Dockerfile is inherited from the scaffold).
-- `docker-compose.yml` requires manually running `deploy:local` before the frontends start.
+- `docker-compose.yml` requires manually running `deploy:local` before the frontends start — the Hardhat container starts the node but does not auto-deploy contracts, so `NEXT_PUBLIC_BRANCH_ADDRESS` must be filled in manually.
+- All operators share a single `OPERATOR_PRIVATE_KEY` — on-chain every check-in appears from the same address, so there is no per-operator audit trail. A production system would need one key (and one registered operator address) per staff member.
 
 ## What we learned
 
