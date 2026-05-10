@@ -1,6 +1,40 @@
 # GymFinder Loyalty — DMBLOCK Assignment 2
 
-A decentralized loyalty system for gym chains. Members earn ERC-20 points on every check-in and redeem them for ERC-1155 reward tokens in the on-chain shop. The platform is split into two independently deployable web apps.
+## What it is
+
+GymFinder Loyalty is a decentralized loyalty platform for gym chains built on Ethereum. It replaces traditional centralized punch-card or points systems — where a gym operator can silently devalue or expire a member's rewards at any time — with a fully on-chain model where points are ERC-20 tokens that members actually own in their wallet and redemptions are ERC-1155 NFTs that serve as tamper-proof receipts.
+
+## The problem it solves
+
+Conventional gym loyalty programs share the same structural weaknesses:
+
+- **No real ownership.** Points live in a proprietary database. The gym can reset, expire, or change the rules unilaterally at any moment.
+- **No portability.** Points from one gym cannot be verified or used anywhere else without a central intermediary.
+- **Opaque redemptions.** When a member redeems a reward, there is no independent record of what they received or when.
+
+GymFinder Loyalty fixes all three: balances are on-chain, redemption history is publicly verifiable on Etherscan, and the rules are encoded in immutable smart contracts that neither the gym nor the platform can modify without a new deployment.
+
+## How it works
+
+The system has three distinct roles:
+
+**Platform operator** deploys the `GymFinderFactory` once. The factory is the single entry point for onboarding new gyms. It also holds a global `LoyaltyToken` (GFP) shared across all gyms on the network and a `PaymentSplitter` that routes monthly subscription revenue between gym owners and the platform treasury.
+
+**Gym owner** calls `GymFinderFactory.deployGymBranch()` to get their own `GymBranch` + `ShopProduct` pair. From that point they configure their branch independently: set the loyalty rate (how many GFP tokens a single visit earns), populate the on-chain shop with products (physical goods, services, discount vouchers), manage their staff operators, and pay a monthly subscription to stay active on the platform.
+
+**Members** connect with MetaMask on the branch web app, register once, and from then on every gym visit mints GFP tokens directly into their wallet. When they have enough tokens they visit the shop, pick a product, and the contract atomically burns the required tokens and mints an ERC-1155 NFT to their address — the NFT is the redemption proof the gym staff can verify on-chain without trusting any off-chain record.
+
+**Operators** (gym staff) do not need a crypto wallet or MetaMask. They authenticate with a 4-digit PIN that creates a short-lived JWT session. The branch app's Next.js server holds an operator private key and signs `checkIn()` transactions on their behalf after scanning a member's QR code. The blockchain still settles the final state; the server acts only as a trusted relay scoped to a single operation.
+
+## Key features
+
+- **Non-custodial loyalty points** — GFP tokens are standard ERC-20; members can inspect their balance in any wallet, no gym-specific app required.
+- **On-chain shop with inventory management** — products have a configurable stock counter that decrements on each redemption; the contract enforces stock limits with no off-chain coordination needed.
+- **ERC-1155 redemption proofs** — each redeemed product type becomes a separate token ID; owning the token is cryptographic proof the redemption happened, enabling future use cases like tradeable or transferable vouchers.
+- **Factory-based multi-gym architecture** — every gym is isolated in its own `GymBranch` and `ShopProduct` but shares the same `LoyaltyToken` and `PaymentSplitter` infrastructure.
+- **Hybrid authentication** — members use MetaMask, operators use PIN + JWT, keeping the UX appropriate for each role without compromising on-chain settlement.
+- **Automated revenue split** — the `PaymentSplitter` contract divides each monthly fee between the gym owner's share and the platform treasury in a single atomic transaction with no manual accounting.
+- **Subscription-gated activity** — a gym that does not pay its monthly fee can be publicly deactivated by anyone after the grace period expires, protecting members from a ghost gym accumulating points.
 
 ## Architecture overview
 
